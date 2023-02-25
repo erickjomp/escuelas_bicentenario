@@ -73,9 +73,11 @@ Data
 =======================================================================
 
 ### Data de proyectos
+Puede revisar la data
 ```{r}
 df_data %>% select(NRO_PROY, LATITUD, LONGITUD, DEPARTAMENTO,
                    PROVINCIA, DISTRITO, COS_INV_PRE, PIM_2022) %>% 
+  filter(!is.na(LONGITUD) | !is.na(LATITUD)) %>% 
 knitr::kable( "html")
 ```
 
