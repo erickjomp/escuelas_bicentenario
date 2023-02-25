@@ -1,0 +1,82 @@
+---
+title: "Proyectos de inversión 'Escuelas Bicentenario'"
+author: "Erick Claros"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(flexdashboard)
+library(plotly)
+library(sf)
+library(geodata)
+library(tmap)
+```
+
+Gráficos
+=======================================================================
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Distribución espacial de proyectos
+
+```{r}
+df_data <- read_delim("https://www.datosabiertos.gob.pe/sites/default/files/Datospara%20DatosAbiertos_act.csv",delim = ";", 
+                      locale = locale(encoding = "UTF-8"))
+df_data <- df_data %>% mutate_at(c("COS_INV_PRE",
+                                   "PIM_2022"),function(x) as.numeric(gsub(",","",x))) %>% 
+  mutate(COS_INV_PRE_mln = COS_INV_PRE / 1000000,
+         PIM_2022_mln = PIM_2022 / 1000000)
+
+sf_data <- 
+  df_data %>% filter(!is.na(LONGITUD), !is.na(LATITUD)) %>% 
+  st_as_sf(coords = c("LONGITUD", "LATITUD"), crs = 4326)
+
+sf_peru_lev1 <- 
+  geodata::gadm("PER",path = tempdir()) %>% st_as_sf()
+
+tmap_mode("view")
+
+plot_mapa <- 
+  tm_shape(sf_peru_lev1,name = "Departamentos Perú") + 
+  tm_borders(col = "grey10") + 
+  tm_shape(sf_data, name = "Proyectos") + 
+  tm_dots(col = "COS_INV_PRE_mln", 
+          title = "Costo de inversión\n(Millones de soles)",
+          palette = "-viridis", 
+          size = 0.1)
+  
+
+tmap_leaflet(plot_mapa)
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Histograma del costo de inversión
+
+```{r}
+ggplot(df_data, aes(x = COS_INV_PRE / 1000000)) + 
+  geom_histogram(fill = "royalblue", col = "white") +
+  ggthemes::theme_few() + 
+  labs(x = "Costo de inversión (en millones de soles)",
+       y = "Número de proyectos") +
+  scale_y_continuous(expand =expansion(mult = c(0,0.04)))
+```
+
+
+Data
+=======================================================================
+
+### Data de proyectos
+```{r}
+df_data %>% select(NRO_PROY, LATITUD, LONGITUD, DEPARTAMENTO,
+                   PROVINCIA, DISTRITO, COS_INV_PRE, PIM_2022) %>% 
+knitr::kable( "html")
+```
+
+
